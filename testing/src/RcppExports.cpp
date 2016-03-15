@@ -48,3 +48,14 @@ BEGIN_RCPP
     return __result;
 END_RCPP
 }
+// pi_sample
+double pi_sample(int n);
+RcppExport SEXP testing_pi_sample(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject __result;
+    Rcpp::RNGScope __rngScope;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    __result = Rcpp::wrap(pi_sample(n));
+    return __result;
+END_RCPP
+}

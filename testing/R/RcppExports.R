@@ -17,3 +17,7 @@ hello_world4 <- function(n) {
     .Call('testing_hello_world4', PACKAGE = 'testing', n)
 }
 
+pi_sample <- function(n) {
+    .Call('testing_pi_sample', PACKAGE = 'testing', n)
+}
+
