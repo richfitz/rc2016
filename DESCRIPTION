@@ -1,0 +1,14 @@
+Package: rc2016
+Title: A Testing Package
+Version: 0.0.1
+Author: Rich FitzJohn
+Maintainer: Rich FitzJohn <rich.fitzjohn@gmail.com>
+Description: A testing package.
+License: MIT + file LICENSE
+LazyData: true
+LinkingTo: Rcpp
+Imports:
+    Rcpp
+URL: https://github.com/richfitz/rc2016
+BugReports: https://github.com/richfitz/rc2016/issues
+RoxygenNote: 5.0.1
