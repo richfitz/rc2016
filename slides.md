@@ -166,6 +166,8 @@ SEXP hello_world3(SEXP rn) {
 
 # Things to note
 
+* Error handling!
+  - `error()`
 * Memory allocation!
   - `allocVector()` - returns a `SEXP`
   - `R_alloc()` will give you auto-cleaned up memory
@@ -283,6 +285,14 @@ Basically: R is running the show here; you need to use its API
 
 ---
 
+# Other issues, Rcpp
+
+* Don't use `error`, use `Rcpp::stop`, or risk crashes
+* Don't use `std::cout` / `std::cerr`, use `Rcpp::Rcout` / `Rcpp::Rcerr`
+* Rcpp must be compiled with same compiler as packages that use it!
+
+---
+
 # Rejection sampling
 
 Estimating pi by rejection sampling
@@ -355,6 +365,226 @@ microbenchmark(pi2(100000), .Call("pi", 100000, PACKAGE="pi"))
 #                          pi2(1e+05) 6.393438
 #  .Call("pi", 1e+05, PACKAGE = "pi") 2.553901
 ```
+
+---
+
+# Handling pointers and avoiding copies
+
+---
+
+```r
+nr <- 10L
+nc <- 11L
+m <- sample(3, nr * nc, replace=TRUE)
+plt <- function(m, nr, nc) {
+  op <- par(mar=rep(0, 4))
+  on.exit(par(op))
+  image(matrix(m, nr, nc), axes=FALSE, bty="n")
+}
+plt(m, nr, nc)
+```
+
+---
+
+![](output/start.png)
+
+---
+
+```c++
+#include <Rcpp.h>
+int clamp(int n, int max) {
+  return n < 0 ? max - 1 : (n < max ? n : 0);
+}
+
+// [[Rcpp::export]]
+std::vector<int> update_model(std::vector<int> x, int nr, int nc) {
+  int i = unif_rand() * nr, j = unif_rand() * nc;
+  int t = x[i + j * nr];
+  x[clamp(i - 1, nr) + j * nr] = t;
+  x[clamp(i + 1, nr) + j * nr] = t;
+  x[i + clamp(j - 1, nc) * nr] = t;
+  x[i + clamp(j + 1, nc) * nr] = t;
+  return x;
+}
+```
+
+---
+
+```r
+for (i in 1:100) {
+  m <- update_model(m, nr, nc)
+}
+plt(m, nr, nc)
+```
+
+---
+
+---
+
+![](output/m-100.png)
+
+---
+
+![](output/m-1000.png)
+
+---
+
+# Copies can be costly
+
+* copies between R and C/C++
+  - treat all `SEXP` and `Rcpp::*` types as _read only_
+  - cost goes up with number of args, size of objects
+* copies within C/C++
+  - copy elision can help
+  - be careful with references and pointers
+
+---
+
+```c++
+void update_model_ref(std::vector<int>& x, int nr, int nc) {
+  int i = unif_rand() * nr, j = unif_rand() * nc;
+  int t = x[i + j * nr];
+  x[clamp(i - 1, nr) + j * nr] = t;
+  x[clamp(i + 1, nr) + j * nr] = t;
+  x[i + clamp(j - 1, nc) * nr] = t;
+  x[i + clamp(j + 1, nc) * nr] = t;
+}
+```
+
+---
+
+```c++
+// [[Rcpp::export]]
+std::vector<int> update_model2(int n, std::vector<int> x,
+                               int nr, int nc) {
+  for (int i = 0; i < n; ++i) {
+    x = update_model(x, nr, nc);
+  }
+  return x;
+}
+// [[Rcpp::export]]
+std::vector<int> update_model3(int n, std::vector<int> x,
+                               int nr, int nc) {
+  for (int i = 0; i < n; ++i) {
+    update_model_ref(x, nr, nc);
+  }
+  return x;
+}
+```
+
+---
+
+```plain
+Unit: microseconds
+                            expr     min
+         update_model(m, nr, nc)   3.225
+    update_model2(1L, m, nr, nc)   3.707
+   update_model2(10L, m, nr, nc)   6.360
+  update_model2(100L, m, nr, nc)  32.852
+ update_model2(1000L, m, nr, nc) 299.275
+    update_model3(1L, m, nr, nc)   3.458
+   update_model3(10L, m, nr, nc)   3.689
+  update_model3(100L, m, nr, nc)   6.517
+ update_model3(1000L, m, nr, nc)  37.147
+```
+
+---
+
+## For big data, use pointers
+
+```c++
+class universe {
+public:
+  std::vector<int> x;
+  int nr;
+  int nc;
+  universe(std::vector<int> x_, int nr_, int nc_) :
+    x(x_), nr(nr_), nc(nc_) {}
+  void update() {
+    update_model_ref(x, nr, nc);
+  }
+};
+```
+
+---
+
+```c++
+// [[Rcpp::export]]
+SEXP universe_create(std::vector<int> x, int nr, int nc) {
+  Rcpp::XPtr<universe> ret(new universe(x, nr, nc), true);
+  return Rcpp::wrap(ret);
+}
+// [[Rcpp::export]]
+void universe_update(SEXP obj) {
+  Rcpp::XPtr<universe> ptr = Rcpp::as<Rcpp::XPtr<universe> >(obj);
+  ptr->update();
+}
+// [[Rcpp::export]]
+std::vector<int> universe_get(SEXP obj) {
+  Rcpp::XPtr<universe> ptr = Rcpp::as<Rcpp::XPtr<universe> >(obj);
+  return ptr->x;
+}
+```
+
+---
+
+```r
+nr <- 1000
+nc <- 1000
+m <- sample(3, nr * nc, replace=TRUE)
+ptr <- universe_create(m, nr, nc)
+ptr
+# <pointer: 0x7fd200f8a660>
+```
+
+---
+
+```
+microbenchmark::microbenchmark(
+  universe_update(ptr),
+  update_model(m, nr, nc),
+  update_model2(1L, m, nr, nc))
+# Unit: microseconds
+#                          expr       min
+#          universe_update(ptr)     3.313
+#       update_model(m, nr, nc) 12444.179
+#  update_model2(1L, m, nr, nc) 18715.152
+```
+
+---
+
+```
+
+nr <- 200
+nc <- 200
+m <- sample(3, nr * nc, replace=TRUE)
+ptr <- universe_create(m, nr, nc)
+for (i in 1:1000000) {
+  universe_update(ptr)
+}
+m <- universe_get(ptr)
+plt(m, nr, nc)
+```
+
+---
+
+![](output/m-big.png)
+
+---
+
+## In C
+
+This can be done, but it's a bit nastier (see `simulation.c`)
+
+---
+
+## Things to remember
+
+* _Any_ data can be in the pointer
+  - raw bytes, database handles, whatever
+* Cannot be serialised
+  - affects `mclapply`, `saveRDS`
+* `NULL` pointer checking becomes important
 
 ---
 

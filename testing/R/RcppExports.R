@@ -21,3 +21,27 @@ pi_sample <- function(n) {
     .Call('testing_pi_sample', PACKAGE = 'testing', n)
 }
 
+update_model <- function(x, nr, nc) {
+    .Call('testing_update_model', PACKAGE = 'testing', x, nr, nc)
+}
+
+update_model2 <- function(n, x, nr, nc) {
+    .Call('testing_update_model2', PACKAGE = 'testing', n, x, nr, nc)
+}
+
+update_model3 <- function(n, x, nr, nc) {
+    .Call('testing_update_model3', PACKAGE = 'testing', n, x, nr, nc)
+}
+
+universe_create <- function(x, nr, nc) {
+    .Call('testing_universe_create', PACKAGE = 'testing', x, nr, nc)
+}
+
+universe_update <- function(obj) {
+    invisible(.Call('testing_universe_update', PACKAGE = 'testing', obj))
+}
+
+universe_get <- function(obj) {
+    .Call('testing_universe_get', PACKAGE = 'testing', obj)
+}
+
