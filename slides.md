@@ -585,6 +585,7 @@ This can be done, but it's a bit nastier (see `simulation.c`)
 * Cannot be serialised
   - affects `mclapply`, `saveRDS`
 * `NULL` pointer checking becomes important
+* Clean up after yourself (finalisers are important)
 
 ---
 
