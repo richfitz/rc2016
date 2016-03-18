@@ -64,7 +64,7 @@ Using C will not magically make a bad algorithm faster
 * Hello world in R & C, R & C++
 * Rejection sampling estimation of pi
 * Dealing with pointers in R and avoiding copies
-* Programing with templates
+* Programing with templates (if we get time)
 
 I have no idea how much of this we can get through.
 
@@ -610,14 +610,25 @@ note that the R manuals conflict on preferring `.C` or `.Call`.  Use `.Call`.
   - use on cluster
   - unit tests
   - shorter scripts
+* Test on >1 platform as soon as you can (especially if one of these platforms can be Windows)
+* Big data?  Use pointers.
+
+---
+
+# Strategies
+
 * Implement the _innermost_ code
   - once in C, stay in C: don't call back out to R
+* Prototype in R, then translate
+  - Write some tests
+  - Implement same function
+  - Compare output
 * Writing code that requires user-provided compiled functions is hard
   - optimisers, mcmc samplers, ODEs
   - consider templates instead
   - or keep the outermost code in R
-* Test on >1 platform as soon as you can (especially if one of these platforms can be Windows)
-* Big data?  Use pointers.
+
+
 
 ---
 
@@ -632,9 +643,11 @@ note that the R manuals conflict on preferring `.C` or `.Call`.  Use `.Call`.
 # Resources
 
 * [Writing R extensions](https://cran.r-project.org/doc/manuals/r-release/R-exts.html): the canonical manual.  Section 5 and 6 are what you want.  There is no list of functions that are the R API.  Ctrl-F is your friend :(
-* `library(help=Rcpp)` - the vignettes.
+* For Rcpp: `library(help=Rcpp)` - the vignettes.
   - Start with `introduction` and `attributes`.
   - Dip into `quickref` and `FAQ` as you need them
   - Some goodies in `sugar`, but optional
-  - There is no good reference to methods of various Rcpp types.  The Rcpp authors will refer you to the Doxygen docs, but I've never made any sense of them.
-* [Advanced R](http://adv-r.had.co.nz) has a chapter on Rcpp
+  - There is no good reference to methods of various Rcpp types.  There is [automatically generated reference documentation](http://dirk.eddelbuettel.com/code/rcpp/html/index.html) but I don't personally find it very useful.
+  - there is a [book](http://www.rcpp.org/book) though it is now 3 years behind the package
+* Hadley Wickham's free online book "[Advanced R](http://adv-r.had.co.nz)" has a [chapter]((http://adv-r.had.co.nz/Rcpp.html) on Rcpp, and another chapter on the [R/C interface](http://adv-r.had.co.nz/C-interface.html)
+* Also from Hadley: [better docs on the R/C API](https://github.com/hadley/r-internals)
