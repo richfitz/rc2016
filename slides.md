@@ -43,6 +43,8 @@ Using C will not magically make a bad algorithm faster
   - fftw, nlopt, eigen, etc
 * *Proven* need for speed
 * Reference semantics & copy avoidance
+* Want a programmable interface to a model
+* You are thinking of doing I/O in C
 
 ---
 
