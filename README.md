@@ -2,7 +2,7 @@
 
 These are slides, notes and examples from a session taught at Imperial College London in March 2016.
 
-To view the slides:
+To view the slides, either see them unrendered as [`slides.md`](slides.md) or:
 
 * Clone or download this repository
 * install [reveal-md](https://github.com/webpro/reveal-md)
